@@ -18,6 +18,10 @@ Files
 
 Quick Start
 -----------
+Clone the repo.
+
+  `git clone https://github.com/skylarwilson/CSC-4402`
+
 Install from repo root. This installs a `cards` command on your PATH.
 
   `pip install -e .`
