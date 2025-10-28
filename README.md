@@ -6,6 +6,7 @@ Overview
 - Minimal SQLite schema with a few cards.
 - Simple CLI for basic CRUD.
 - Uses Python stdlib `sqlite3`.
+- Requires Python >= 3.8.
 
 Files
 -----
