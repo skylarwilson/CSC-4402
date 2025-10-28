@@ -42,6 +42,7 @@ Add a new card:
 Update a card (by id or name):
 
    `cards update 1 --price-cents 1099 --stock 4`
+   
    `cards update "Flame Drake" --price-cents 1099 --stock 4`
 
 Delete a card:
