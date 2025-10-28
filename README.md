@@ -32,6 +32,7 @@ List cards:
 Get a card by id or exact name:
 
    `cards get 1`
+   
    `cards get "Flame Drake"`
 
 Add a new card:
