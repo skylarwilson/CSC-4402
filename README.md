@@ -1,50 +1,53 @@
-Repository for CSC 4402 Fall 2025
-=
-Project using some database. IN PROGRESS
+Trading Card Shop — SQLite + Python
+===================================
 
-Made by myself, [Brock](), and [Ryan]()
+Overview
+--------
+- Minimal SQLite schema with a few cards.
+- Simple CLI for basic CRUD.
+- Uses Python stdlib `sqlite3`.
 
-[some database link]()
+Files
+-----
+- `cards/db.py`: DB schema, seed, and helpers.
+- `cards/cli.py`: Argparse CLI to manage cards.
+- `cards/__init__.py`: Package marker.
+- `cards/__main__.py`: Enables `python -m cards`.
+- `pyproject.toml`: Package metadata and `cards` console script.
 
-Setup with Docker
-=
-**First**: download the docker image.
->`docker pull kizie/4402project`
+Quick Start
+-----------
+Install from repo root. This installs a `cards` command on your PATH.
 
-**Second**: to start the container use the following:
->`docker run -d --name app -p 8000:8000 kizie/4402project`
+  `pip install -e .`
 
-**Third**: use the following command to ensure the container is running. Take note of the `CONTAINER ID` for the next step:
->`docker ps`
+Initialize the database (with sample cards):
 
-![Image](misc/example.png)
+   `cards init-db`
 
-**Fourth**: to gain access inside the container, use the command:
->`docker exec -it <container_id> bash`
+List cards:
 
-**Fifth**: from here you can access the cli.py file using:
->`python cli.py <argument>`
+   `cards list`
 
-For example, use
->`python cli.py list`
+Get a card by id or exact name:
 
-to list all of the cards available.
+   `cards get 1`
+   `cards get "Flame Drake"`
 
-![Image](misc/example2.png)
+Add a new card:
 
-List of all commands:
->`python cli.py list`
+   `cards add "Sea Serpent" "Tidal Legends" Rare 499 --stock 3`
 
->`python cli.py get <id>`
+Update a card (by id or name):
 
->`python cli.py delete <id>`
+   `cards update 1 --price-cents 1099 --stock 4`
+   `cards update "Flame Drake" --price-cents 1099 --stock 4`
 
->`python cli.py create --name <int: name> --rarity <str: rarity> --price-cents <int: price> --stock <int: stock>`
+Delete a card:
 
-Rarieties are {Common, Uncommon, Rare, Mythic}
+   `cards delete 1`
 
-To exit the command line, use:
->`exit`
 
-To stop the container, use:
->`docker stop <container_id>`
+Notes
+-----
+- Default DB path is `cards/shop.db` (created automatically).

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-cards-shop"
+version = "0.1.0"
+description = "SQLite trading card shop with a simple CLI"
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "Proprietary"}
+authors = [{ name = "Your Name" }]
+dependencies = []
+
+[project.scripts]
+cards = "cards.cli:main"
+
+[tool.setuptools]
+packages = ["cards"]
+package-dir = { cards = "." }
