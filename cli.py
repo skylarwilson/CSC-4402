@@ -6,6 +6,7 @@ Exposes a ``cards`` console script via ``pyproject.toml``.
 
 import argparse
 from typing import Optional
+from .utils import cents_to_str, print_output
 
 from . import __all__  # noqa: F401  # ensures package import
 from .db import (
@@ -16,16 +17,8 @@ from .db import (
     init_db,
     list_cards,
     update_card,
+    test1,
 )
-
-
-def cents_to_str(cents: int) -> str:
-    """Render an integer number of cents as a human-friendly price string.
-
-    Example: 1099 -> "$ 10.99"
-    """
-    return f"$ {cents/100:.2f}"
-
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     """Build and parse CLI arguments.
@@ -42,8 +35,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s_init = sub.add_parser("init-db", help="Create tables and seed sample cards")
-    s_init.add_argument("--no-sample", action="store_true", help="Do not seed sample data")
+    s_init = sub.add_parser("init-db", help="Create tables and fills with sample cards")
 
     sub.add_parser("list", help="List all cards")
 
@@ -68,6 +60,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     s_del = sub.add_parser("delete", help="Delete a card by id or name")
     s_del.add_argument("identifier")
 
+    s_test1 = sub.add_parser("test1", help = "Run first test.")
+
     return p.parse_args(argv)
 
 
@@ -80,8 +74,19 @@ def main(argv: Optional[list[str]] = None) -> int:
     db = ns.db
 
     if ns.cmd == "init-db":
-        init_db(db, with_sample=not ns.no_sample)
-        print(f"Initialized DB at {db} (sample={'yes' if not ns.no_sample else 'no'})")
+        # Compute count before (if table doesn't exist yet, treat as 0)
+        try:
+            before = len(list_cards(db))
+        except Exception:
+            before = 0
+
+        init_db(db)
+
+        # Count after initialization and report delta
+        after = len(list_cards(db))
+        added = max(0, after - before)
+        print(f"Initialized DB at {db}")
+        print(f"Added {added} card(s)")
         return 0
 
     if ns.cmd == "list":
@@ -89,11 +94,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not rows:
             print("No cards found.")
             return 0
-        for r in rows:
-            print(
-                f"#{r['id']:>3} | {r['name']} | {r['set_name']} | {r['rarity']} | "
-                f"{cents_to_str(r['price_cents'])} | stock = {r['stock']}"
-            )
+        print_output(rows)
         return 0
 
     if ns.cmd == "get":
@@ -101,10 +102,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not r:
             print("Not found")
             return 1
-        print(
-            f"id={r['id']}\nname={r['name']}\nset={r['set_name']}\nrarity={r['rarity']}\n"
-            f"price={cents_to_str(r['price_cents'])}\nstock = {r['stock']}"
-        )
+        print_output([r])
         return 0
 
     if ns.cmd == "add":
@@ -130,6 +128,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     if ns.cmd == "delete":
         deleted = delete_card(ns.identifier, db)
         print(f"Deleted {deleted} row(s)")
+        return 0
+    
+    if ns.cmd =="test1":
+        out = test1(db)
+        print_output(out)
+        print("Ran test 1.")
         return 0
 
     return 1

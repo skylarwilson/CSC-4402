@@ -9,6 +9,7 @@ dict-like access in the CLI.
 import os
 import sqlite3
 from typing import Iterable, Optional
+from .gen_data import generate_cards
 
 
 # Default DB lives alongside the package (created on demand).
@@ -42,7 +43,7 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     return conn
 
 
-def init_db(db_path: Optional[str] = None, with_sample: bool = True) -> None:
+def init_db(db_path: Optional[str] = None) -> None:
     """Create tables if missing and optionally seed sample data.
 
     Sample data is only inserted when the ``cards`` table is empty, and is
@@ -50,21 +51,11 @@ def init_db(db_path: Optional[str] = None, with_sample: bool = True) -> None:
     """
     with get_connection(db_path) as conn:
         conn.executescript(SCHEMA_SQL)
-        if with_sample:
-            # Seed only via generator when table is empty
-            cur = conn.execute("SELECT COUNT(1) AS c FROM cards")
-            if cur.fetchone()[0] == 0:
-                try:
-                    from .gen_data import generate_cards  # type: ignore
-                except Exception:
-                    generate_cards = None
-                if generate_cards is not None:
-                    rows = generate_cards(count=25)
-                    if rows:
-                        conn.executemany(
-                            "INSERT OR IGNORE INTO cards(name, set_name, rarity, price_cents, stock) VALUES (?,?,?,?,?)",
-                            rows,
-                        )
+        rows = generate_cards(count=25)
+        conn.executemany(
+            "INSERT OR IGNORE INTO cards(name, set_name, rarity, price_cents, stock) VALUES (?,?,?,?,?)",
+            rows,
+        )
         conn.commit()
 
 
@@ -176,3 +167,48 @@ def delete_card(identifier: str, db_path: Optional[str] = None) -> int:
             cur = conn.execute("DELETE FROM cards WHERE name = ?", (identifier,))
         conn.commit()
         return cur.rowcount
+
+def test1(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "SELECT id, name, set_name, rarity, price_cents, stock\
+            FROM cards WHERE price_cents >= ?",
+            (500,),
+        )
+        return cur.fetchall()
+
+def test2(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "SELECT id, name, set_name, rarity, price_cents, stock\
+            FROM cards WHERE price_cents >= ?",
+            (500,),
+        )
+        return cur.fetchall()
+    
+def test3(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "SELECT id, name, set_name, rarity, price_cents, stock\
+            FROM cards WHERE price_cents >= ?",
+            (500,),
+        )
+        return cur.fetchall()
+    
+def test4(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "SELECT id, name, set_name, rarity, price_cents, stock\
+            FROM cards WHERE price_cents >= ?",
+            (500,),
+        )
+        return cur.fetchall()
+    
+def test5(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "SELECT id, name, set_name, rarity, price_cents, stock\
+            FROM cards WHERE price_cents >= ?",
+            (500,),
+        )
+        return cur.fetchall()

@@ -49,18 +49,18 @@ def _price_for_rarity(rarity: str, rng: random.Random) -> int:
 
 
 def _weighted_rarity(rng: random.Random) -> str:
-    # Approximate distribution: Common 55%, Uncommon 30%, Rare 12%, Mythic 3%
+    # Approximate distribution: Common 50%, Uncommon 25%, Rare 15%, Mythic 10%
     roll = rng.random()
-    if roll < 0.55:
+    if roll < 0.50:
         return "Common"
-    if roll < 0.85:
+    if roll < 0.75:
         return "Uncommon"
-    if roll < 0.97:
+    if roll < 0.90:
         return "Rare"
     return "Mythic"
 
 
-def generate_cards(count: int = 25, seed: Optional[int] = None) -> List[CardRow]:
+def generate_cards(count: int = 24, seed: Optional[int] = None) -> List[CardRow]:
     """Generate a list of pseudo-random card rows.
 
     - Ensures unique names within this generated batch.
@@ -69,7 +69,7 @@ def generate_cards(count: int = 25, seed: Optional[int] = None) -> List[CardRow]
     rng = random.Random(seed)
     names_seen = set()
     out: List[CardRow] = []
-
+    out.append(("Thunderfury, Blessed Blade of the Windseeker", "Dark Portal", "Legendary", 100000, 1))
     # Cap attempts to avoid infinite loops if count is huge vs. name space
     attempts = 0
     while len(out) < count and attempts < count * 20:
@@ -87,28 +87,3 @@ def generate_cards(count: int = 25, seed: Optional[int] = None) -> List[CardRow]
         out.append((name, set_name, rarity, price_cents, stock))
 
     return out
-
-
-if __name__ == "__main__":
-    # Optional CLI helper to populate an existing DB with more cards.
-    # Usage: python -m cards.gen_data --db path --count 50 --seed 42
-    import argparse
-    from . import db as dbmod  # Imported only for CLI mode to avoid cycles.
-
-    ap = argparse.ArgumentParser(description="Generate and insert fake cards")
-    ap.add_argument("--db", default=None, help="Path to DB file (defaults to package default)")
-    ap.add_argument("--count", type=int, default=25, help="How many cards to generate")
-    ap.add_argument("--seed", type=int, default=None, help="Optional RNG seed for reproducibility")
-    args = ap.parse_args()
-
-    rows = generate_cards(count=args.count, seed=args.seed)
-    inserted = 0
-    for name, set_name, rarity, price_cents, stock in rows:
-        try:
-            dbmod.add_card(name, set_name, rarity, price_cents, stock, db_path=args.db)
-            inserted += 1
-        except Exception:
-            # Ignore duplicates or constraint failures when running repeatedly
-            pass
-
-    print(f"Inserted {inserted} generated cards into {args.db or dbmod.DEFAULT_DB_PATH}")
