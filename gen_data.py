@@ -5,12 +5,15 @@ to insert additional cards into an existing database.
 """
 
 import random
-from typing import Iterable, Iterator, List, Sequence, Tuple, Optional
+from typing import List, Sequence, Tuple, Optional
 
 
 # A card tuple matches the `cards` table insert order in db.py
 # (name, set_name, rarity, price_cents, stock)
 CardRow = Tuple[str, str, str, int, int]
+# An employee tuple matches the `employees` table insert order in db.py
+# (first_name, last_name, city)
+EmployeeRow = Tuple[str, str, str]
 
 
 ADJECTIVES: Sequence[str] = (
@@ -36,6 +39,23 @@ SET_NAMES: Sequence[str] = (
 
 RARITIES: Sequence[str] = ("Common", "Uncommon", "Rare", "Mythic")
 
+# Simple employee name and city pools for generating sample employees
+FIRST_NAMES: Sequence[str] = (
+    "Ava", "Liam", "Noah", "Emma", "Olivia", "Mason", "Sophia", "Isabella",
+    "Mia", "Ethan", "Harper", "Amelia", "Logan", "Elijah", "Lucas", "Charlotte",
+)
+
+LAST_NAMES: Sequence[str] = (
+    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
+    "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez",
+    "Wilson", "Anderson", "Thomas",
+)
+
+CITIES: Sequence[str] = (
+    "New Orleans", "Baton Rouge", "Shreveport", "Lafayette", "Lake Charles",
+    "Alexandria", "Monroe", "Hammond", "Houma", "Slidell",
+)
+
 
 def _price_for_rarity(rarity: str, rng: random.Random) -> int:
     if rarity == "Common":
@@ -60,13 +80,13 @@ def _weighted_rarity(rng: random.Random) -> str:
     return "Mythic"
 
 
-def generate_cards(count: int = 24, seed: Optional[int] = None) -> List[CardRow]:
+def generate_cards(count) -> List[CardRow]:
     """Generate a list of pseudo-random card rows.
 
     - Ensures unique names within this generated batch.
     - Uses weighted rarities and rarity-based price ranges.
     """
-    rng = random.Random(seed)
+    rng = random.Random()
     names_seen = set()
     out: List[CardRow] = []
     out.append(("Thunderfury, Blessed Blade of the Windseeker", "Dark Portal", "Legendary", 100000, 1))
@@ -85,5 +105,32 @@ def generate_cards(count: int = 24, seed: Optional[int] = None) -> List[CardRow]
         stock = rng.randint(0, 20 if rarity in ("Rare", "Mythic") else 50)
 
         out.append((name, set_name, rarity, price_cents, stock))
+
+    return out
+
+
+def generate_employees(count) -> List[EmployeeRow]:
+    """Generate a list of pseudo-random employee rows.
+
+    - Ensures unique first/last combinations within this batch.
+    - Randomly assigns a city from a small pool.
+    """
+    rng = random.Random()
+    seen_full_names = set()
+    out: List[EmployeeRow] = []
+
+    # Cap attempts to avoid infinite loops if count is huge vs. name space
+    attempts = 0
+    while len(out) < count and attempts < count * 20:
+        attempts += 1
+        first = rng.choice(FIRST_NAMES)
+        last = rng.choice(LAST_NAMES)
+        full = (first, last)
+        if full in seen_full_names:
+            continue
+        seen_full_names.add(full)
+
+        city = rng.choice(CITIES)
+        out.append((first, last, city))
 
     return out

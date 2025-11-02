@@ -9,7 +9,7 @@ dict-like access in the CLI.
 import os
 import sqlite3
 from typing import Iterable, Optional
-from .gen_data import generate_cards
+from .gen_data import generate_cards, generate_employees
 
 
 # Default DB lives alongside the package (created on demand).
@@ -26,6 +26,13 @@ CREATE TABLE IF NOT EXISTS cards (
     rarity TEXT NOT NULL,
     price_cents INTEGER NOT NULL CHECK(price_cents >= 0),
     stock INTEGER NOT NULL DEFAULT 0 CHECK(stock >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    city TEXT NOT NULL
 );
 """
 
@@ -51,13 +58,32 @@ def init_db(db_path: Optional[str] = None) -> None:
     """
     with get_connection(db_path) as conn:
         conn.executescript(SCHEMA_SQL)
-        rows = generate_cards(count=25)
+        cards = generate_cards(count=25)
+        employees = generate_employees(count=4)
         conn.executemany(
             "INSERT OR IGNORE INTO cards(name, set_name, rarity, price_cents, stock) VALUES (?,?,?,?,?)",
-            rows,
+            cards,
+        )
+        conn.executemany(
+            "INSERT OR IGNORE INTO employees(first_name, last_name, city) VALUES (?,?,?)",
+            employees,
         )
         conn.commit()
 
+def add_emp(
+    first_name: str,
+    last_name: str,
+    city: str,
+    db_path: Optional[str] = None,
+) -> int:
+    """Insert a new employee and return the new row id."""
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "INSERT INTO employees(first_name, last_name, city) VALUES (?,?,?)",
+            (first_name, last_name, city),
+        )
+        conn.commit()
+        return cur.lastrowid
 
 def add_card(
     name: str,
@@ -86,6 +112,14 @@ def list_cards(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
         return cur.fetchall()
 
 
+def list_emp(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
+    """Return all employees ordered by id."""
+    with get_connection(db_path) as conn:
+        cur = conn.execute(
+            "SELECT id, first_name, last_name, city FROM employees ORDER BY id"
+        )
+        return cur.fetchall()
+
 def get_card(identifier: str, db_path: Optional[str] = None) -> Optional[sqlite3.Row]:
     """Fetch a single card by numeric id (string) or exact name."""
     with get_connection(db_path) as conn:
@@ -100,7 +134,16 @@ def get_card(identifier: str, db_path: Optional[str] = None) -> Optional[sqlite3
                 (identifier,),
             )
         return cur.fetchone()
-
+    
+def get_emp(identifier: str, db_path: Optional[str] = None) -> Optional[sqlite3.Row]:
+    """Fetch a single card by numeric id (string) or exact name."""
+    with get_connection(db_path) as conn:
+        if identifier.isdigit():
+            cur = conn.execute(
+                "SELECT id, first_name, last_name, city FROM employees WHERE id = ?",
+                (int(identifier),),
+            )
+        return cur.fetchone()
 
 def update_card(
     identifier: str,
@@ -157,6 +200,52 @@ def update_card(
         conn.commit()
         return cur.rowcount
 
+def update_emp(
+    identifier: str,
+    *,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    city: Optional[str] = None,
+    db_path: Optional[str] = None,
+) -> int:
+    """Update provided fields for a card located by id or name.
+
+    Only non-None keyword arguments are included in the UPDATE statement. The
+    SQL uses parameter binding for values; the dynamic portion is limited to
+    the column list built from a fixed, vetted set which avoids injection.
+    Returns the number of affected rows.
+    """
+    fields = []
+    values = []
+    if first_name is not None:
+        fields.append("first_name = ?")
+        values.append(first_name)
+    if last_name is not None:
+        fields.append("last_name = ?")
+        values.append(last_name)
+    if city is not None:
+        fields.append("city = ?")
+        values.append(city)
+
+    if not fields:
+        # Nothing to update; signal no-op to caller.
+        return 0
+
+    with get_connection(db_path) as conn:
+        if identifier.isdigit():
+            values.append(int(identifier))
+            cur = conn.execute(
+                f"UPDATE employees SET {', '.join(fields)} WHERE id = ?",
+                tuple(values),
+            )
+        else:
+            values.append(identifier)
+            cur = conn.execute(
+                f"UPDATE employees SET {', '.join(fields)} WHERE first_name = ? AND last_name = ?",
+                tuple(values),
+            )
+        conn.commit()
+        return cur.rowcount
 
 def delete_card(identifier: str, db_path: Optional[str] = None) -> int:
     """Delete a card by numeric id (string) or exact name. Returns rowcount."""
@@ -165,6 +254,14 @@ def delete_card(identifier: str, db_path: Optional[str] = None) -> int:
             cur = conn.execute("DELETE FROM cards WHERE id = ?", (int(identifier),))
         else:
             cur = conn.execute("DELETE FROM cards WHERE name = ?", (identifier,))
+        conn.commit()
+        return cur.rowcount
+    
+def delete_emp(identifier: str, db_path: Optional[str] = None) -> int:
+    """Delete an employee by numeric id (string). Returns rowcount."""
+    with get_connection(db_path) as conn:
+        if identifier.isdigit():
+            cur = conn.execute("DELETE FROM employees WHERE id = ?", (int(identifier),))
         conn.commit()
         return cur.rowcount
 
@@ -180,9 +277,9 @@ def test1(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
 def test2(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
     with get_connection(db_path) as conn:
         cur = conn.execute(
-            "SELECT id, name, set_name, rarity, price_cents, stock\
-            FROM cards WHERE price_cents >= ?",
-            (500,),
+            "SELECT id, first_name, last_name, city\
+            FROM employees WHERE city = ?",
+            ("Baton Rouge",),
         )
         return cur.fetchall()
     

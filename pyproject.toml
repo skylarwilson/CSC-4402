@@ -16,5 +16,5 @@ dependencies = []
 cards = "cards.cli:main"
 
 [tool.setuptools]
-packages = ["cards"]
+packages = ["cards", "test_scripts"]
 package-dir = { cards = "." }
