@@ -1,111 +1,88 @@
-"""Command-line interface for the trading cards shop.
+"""Command-line interface for our Trading Cards shop."""
 
-Provides CRUD operations backed by the SQLite helpers in ``db.py``.
-Exposes a ``cards`` console script via ``pyproject.toml``.
-"""
 
 import argparse
-from typing import Optional
+from typing import List, Optional
 from .utils import print_table
-from test_scripts.test_cli import test_cli
-
-from . import __all__  # noqa: F401  # ensures package import
+from . import __all__
 from . import db
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
-    """Build and parse CLI arguments.
 
-    The optional ``argv`` is primarily for testing; when ``None`` defaults to
-    ``sys.argv[1:]`` via ``ArgumentParser.parse_args``.
-    """
-    p = argparse.ArgumentParser(description="Trading card shop CLI (SQLite)")
-    # Global options
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    """Build and parse CLI arguments."""
+
+    p = argparse.ArgumentParser(description="Trading Card shop CLI tool")
     p.add_argument(
         "--db",
         default=db.DEFAULT_DB_PATH,
         help=f"Path to SQLite DB (default: {db.DEFAULT_DB_PATH})",
     )
-
     sub = p.add_subparsers(dest="cmd", required=True)
 
+
     # INIT-DB
-    # initialize the database with tables and data
-    s_init = sub.add_parser("init-db", help="Create tables and fills with sample cards")
-
-
-
-    # RUN TEST SCRIPT
-    test_script = sub.add_parser("test_cli", help="Run test script for correctness")
-
+    # Initialize the database with tables and data
+    init = sub.add_parser("init-db", help="Create tables and fills with sample data")
 
 
     # LIST
     list_c = sub.add_parser("list_c", help="List all cards")
     list_e = sub.add_parser("list_e", help="List all employees")
-    # list_order = sub.add_parser("list_o", help="List all orders")
-    # list_pr = sub.add_parser("list_pr", help="List all products")
-    # list_pay = sub.add_parser("list_pr", help="List all products")
-    # list_inv = sub.add_parser("list_pr", help="List all products")
-
 
 
     # GET
-    c_get = sub.add_parser("get", help="Get a card by id or name")
-    c_get.add_argument("identifier", help="Card id or exact name")
+    get_c = sub.add_parser("get", help="Get a card by id or name")
+    get_c.add_argument("identifier", help="Card id or exact name")
     get_emp = sub.add_parser("get_emp", help="Get an employee by id")
-    get_emp.add_argument("identifier", help="Employee id")
-
+    get_emp.add_argument("identifier", type=int, help="Employee id")
 
 
     # ADD
-    c_add = sub.add_parser("add", help="Add a new card")
-    c_add.add_argument("name")
-    c_add.add_argument("set_name")
-    c_add.add_argument("rarity")
-    c_add.add_argument("price_cents", type=int)
-    c_add.add_argument("--stock", type=int, default=0)
+    add_c = sub.add_parser("add", help="Add a new card")
+    add_c.add_argument("name")
+    add_c.add_argument("set_name")
+    add_c.add_argument("rarity")
+    add_c.add_argument("price_cents", type=int)
+    add_c.add_argument("--stock", type=int, default=0)
 
-
-    s_add_emp = sub.add_parser("add_emp", help="Add a new employee")
-    s_add_emp.add_argument("id")
-    s_add_emp.add_argument("first_name")
-    s_add_emp.add_argument("last_name")
-    s_add_emp.add_argument("city")
-
+    add_emp = sub.add_parser("add_emp", help="Add a new employee")
+    add_emp.add_argument("first_name")
+    add_emp.add_argument("last_name")
+    add_emp.add_argument("city")
 
 
     # UPDATE
-    s_upd = sub.add_parser("update", help="Update a card by id or name")
-    s_upd.add_argument("identifier")
-    s_upd.add_argument("--name")
-    s_upd.add_argument("--set-name")
-    s_upd.add_argument("--rarity")
-    s_upd.add_argument("--price-cents", type=int)
-    s_upd.add_argument("--stock", type=int)
+    upd_c = sub.add_parser("update", help="Update a card by id or name")
+    upd_c.add_argument("identifier")
+    upd_c.add_argument("--name")
+    upd_c.add_argument("--set-name")
+    upd_c.add_argument("--rarity")
+    upd_c.add_argument("--price-cents", type=int)
+    upd_c.add_argument("--stock", type=int)
 
-    e_upd = sub.add_parser("update_e", help="Update an employee by id")
-    e_upd.add_argument("identifier")
-    e_upd.add_argument("--first_name")
-    e_upd.add_argument("--last_name")
-    e_upd.add_argument("--city")
+    upd_emp = sub.add_parser("update_e", help="Update an employee by id")
+    upd_emp.add_argument("identifier", type=int)
+    upd_emp.add_argument("--first_name")
+    upd_emp.add_argument("--last_name")
+    upd_emp.add_argument("--city")
+
 
     # DELETE
-    s_del = sub.add_parser("delete", help="Delete a card by id or name")
-    s_del.add_argument("identifier")
+    del_c = sub.add_parser("delete", help="Delete a card by id or name")
+    del_c.add_argument("identifier")
 
-    emp_del = sub.add_parser("delete_e", help="Delete an employee by id")
-    emp_del.add_argument("identifier")
+    del_emp = sub.add_parser("delete_e", help="Delete an employee by id")
+    del_emp.add_argument("identifier", type=int)
 
 
     # TEST QUERIES
-    s_test1 = sub.add_parser("test1", help = "Run first test.")
-    s_test2 = sub.add_parser("test2", help = "Run second test.")
+    test1 = sub.add_parser("test1", help = "Run first test.")
 
     return p.parse_args(argv)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
-    """Entry point for the ``cards`` CLI.
+def main(argv: Optional[List[str]] = None) -> int:
+    """Entry point for the `cards` CLI.
 
     Returns a process exit code (0 for success, non-zero on not-found errors).
     """
@@ -121,9 +98,12 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         db.init_db(db_path)
 
-        print(f"Initialized DB at {db}")
+        print(f"Initialized DB at {db_path}")
         return 0
 
+
+    # LIST
+    # List cards
     if ns.cmd == "list_c":
         rows = db.list_cards(db_path)
         if not rows:
@@ -132,6 +112,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print_table(rows)
         return 0
     
+    # List employees
     if ns.cmd == "list_e":
         rows = db.list_emp(db_path)
         if not rows:
@@ -140,6 +121,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         print_table(rows)
         return 0
 
+
+    # GET
+    # Get card by id or name
     if ns.cmd == "get":
         r = db.get_card(ns.identifier, db_path)
         if not r:
@@ -148,6 +132,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print_table([r])
         return 0
     
+    # Get employee by id
     if ns.cmd == "get_emp":
         r = db.get_emp(ns.identifier, db_path)
         if not r:
@@ -156,22 +141,25 @@ def main(argv: Optional[list[str]] = None) -> int:
         print_table([r])
         return 0
 
+
+    # ADD
+    # Add a new card
     if ns.cmd == "add":
         new_id = db.add_card(ns.name, ns.set_name, ns.rarity, ns.price_cents, ns.stock, db_path)
         print(f"Added card #{new_id}")
         return 0
     
+    # Add a new employee
     if ns.cmd == "add_emp":
         new_id = db.add_emp(ns.first_name, ns.last_name, ns.city, db_path)
         print(f"Added employee #{new_id}")
         return 0
 
 
-
     # UPDATE
+    # Update a card by id or name
     if ns.cmd == "update":
-        # ``update_card`` accepts partial updates; only flags provided are changed.
-        # ``identifier`` can be a numeric id or an exact name.
+        # `identifier` can be a numeric id or an exact name.
         updated = db.update_card(
             ns.identifier,
             name=ns.name,
@@ -184,6 +172,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"Updated {updated} row(s)")
         return 0
     
+    # Update an employee by id
     if ns.cmd == "update_e":
         updated = db.update_emp(
             ns.identifier,
@@ -195,34 +184,29 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"Updated {updated} row(s)")
         return 0
 
+
+    # DELETE
+    # Delete a card by id or name
     if ns.cmd == "delete":
         deleted = db.delete_card(ns.identifier, db_path)
         print(f"Deleted {deleted} row(s)")
         return 0
     
+    # Delete an employee by id
     if ns.cmd == "delete_e":
         deleted = db.delete_emp(ns.identifier, db_path)
         print(f"Deleted {deleted} row(s)")
         return 0
-    
-    if ns.cmd =="test1":
+
+
+    # TEST QUERIES
+    # Initialize test1
+    if ns.cmd == "test1":
         out = db.test1(db_path)
         print_table(out)
         print("Ran test 1.")
         return 0
-    
-    if ns.cmd =="test2":
-        out = db.test2(db_path)
-        print_table(out)
-        print("Ran test 2.")
-        return 0
-    
 
-
-
-    if ns.cmd =="test_cli":
-        test_cli()
-        return 0
 
     return 1
 

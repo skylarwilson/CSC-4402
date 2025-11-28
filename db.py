@@ -1,15 +1,16 @@
-"""SQLite helpers for the trading cards shop.
+"""SQLite Database.
 
 This module encapsulates DB access: connection management, schema creation,
-and CRUD helpers for the ``cards`` table. It intentionally uses only the
-stdlib ``sqlite3`` module and returns ``sqlite3.Row`` objects for convenient
-dict-like access in the CLI.
+and CRUD helpers.
 """
 
 import os
 import sqlite3
 from typing import Iterable, Optional
-from .gen_data import generate_cards, generate_employees
+from .gen_data import (
+    generate_cards,
+    generate_employees
+)
 
 
 # Default DB lives alongside the package (created on demand).
@@ -44,31 +45,35 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     works without needing to create folders manually.
     """
     path = db_path or DEFAULT_DB_PATH
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dirpath = os.path.dirname(path)
+    if dirpath:
+        os.makedirs(dirpath, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db(db_path: Optional[str] = None) -> None:
-    """Create tables if missing and optionally seed sample data.
+    """Create tables if missing and seeds sample data."""
 
-    Sample data is only inserted when the ``cards`` table is empty, and is
-    generated via ``gen_data.generate_cards`` when available.
-    """
     with get_connection(db_path) as conn:
         conn.executescript(SCHEMA_SQL)
-        cards = generate_cards(count=25)
-        employees = generate_employees(count=4)
-        conn.executemany(
-            "INSERT OR IGNORE INTO cards(name, set_name, rarity, price_cents, stock) VALUES (?,?,?,?,?)",
-            cards,
-        )
-        conn.executemany(
-            "INSERT OR IGNORE INTO employees(first_name, last_name, city) VALUES (?,?,?)",
-            employees,
-        )
-        conn.commit()
+
+        card_count = conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0]
+        if card_count == 0:
+            cards = generate_cards(count=25)
+            conn.executemany(
+                "INSERT INTO cards(name, set_name, rarity, price_cents, stock) VALUES (?,?,?,?,?)",
+                cards,
+            )
+
+        employee_count = conn.execute("SELECT COUNT(*) FROM employees").fetchone()[0]
+        if employee_count == 0:
+            employees = generate_employees(count=4)
+            conn.executemany(
+                "INSERT INTO employees(first_name, last_name, city) VALUES (?,?,?)",
+                employees,
+            )
 
 def add_emp(
     first_name: str,
@@ -77,6 +82,7 @@ def add_emp(
     db_path: Optional[str] = None,
 ) -> int:
     """Insert a new employee and return the new row id."""
+
     with get_connection(db_path) as conn:
         cur = conn.execute(
             "INSERT INTO employees(first_name, last_name, city) VALUES (?,?,?)",
@@ -94,6 +100,7 @@ def add_card(
     db_path: Optional[str] = None,
 ) -> int:
     """Insert a new card and return the new row id."""
+
     with get_connection(db_path) as conn:
         cur = conn.execute(
             "INSERT INTO cards(name, set_name, rarity, price_cents, stock) VALUES (?,?,?,?,?)",
@@ -105,6 +112,7 @@ def add_card(
 
 def list_cards(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
     """Return all cards ordered by id."""
+
     with get_connection(db_path) as conn:
         cur = conn.execute(
             "SELECT id, name, set_name, rarity, price_cents, stock FROM cards ORDER BY id"
@@ -114,6 +122,7 @@ def list_cards(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
 
 def list_emp(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
     """Return all employees ordered by id."""
+
     with get_connection(db_path) as conn:
         cur = conn.execute(
             "SELECT id, first_name, last_name, city FROM employees ORDER BY id"
@@ -121,7 +130,8 @@ def list_emp(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
         return cur.fetchall()
 
 def get_card(identifier: str, db_path: Optional[str] = None) -> Optional[sqlite3.Row]:
-    """Fetch a single card by numeric id (string) or exact name."""
+    """Fetch a single card by numeric id or exact name."""
+    
     with get_connection(db_path) as conn:
         if identifier.isdigit():
             cur = conn.execute(
@@ -135,14 +145,14 @@ def get_card(identifier: str, db_path: Optional[str] = None) -> Optional[sqlite3
             )
         return cur.fetchone()
     
-def get_emp(identifier: str, db_path: Optional[str] = None) -> Optional[sqlite3.Row]:
-    """Fetch a single card by numeric id (string) or exact name."""
+def get_emp(identifier: int, db_path: Optional[str] = None) -> Optional[sqlite3.Row]:
+    """Fetch a single employee by numeric id."""
+
     with get_connection(db_path) as conn:
-        if identifier.isdigit():
-            cur = conn.execute(
-                "SELECT id, first_name, last_name, city FROM employees WHERE id = ?",
-                (int(identifier),),
-            )
+        cur = conn.execute(
+            "SELECT id, first_name, last_name, city FROM employees WHERE id = ?",
+            (int(identifier),),
+        )
         return cur.fetchone()
 
 def update_card(
@@ -157,11 +167,9 @@ def update_card(
 ) -> int:
     """Update provided fields for a card located by id or name.
 
-    Only non-None keyword arguments are included in the UPDATE statement. The
-    SQL uses parameter binding for values; the dynamic portion is limited to
-    the column list built from a fixed, vetted set which avoids injection.
     Returns the number of affected rows.
     """
+
     fields = []
     values = []
     if name is not None:
@@ -201,18 +209,16 @@ def update_card(
         return cur.rowcount
 
 def update_emp(
-    identifier: str,
+    identifier: int,
     *,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
     city: Optional[str] = None,
     db_path: Optional[str] = None,
 ) -> int:
-    """Update provided fields for a card located by id or name.
+    """
+    Update provided fields for an employee located by id.
 
-    Only non-None keyword arguments are included in the UPDATE statement. The
-    SQL uses parameter binding for values; the dynamic portion is limited to
-    the column list built from a fixed, vetted set which avoids injection.
     Returns the number of affected rows.
     """
     fields = []
@@ -232,23 +238,17 @@ def update_emp(
         return 0
 
     with get_connection(db_path) as conn:
-        if identifier.isdigit():
-            values.append(int(identifier))
-            cur = conn.execute(
-                f"UPDATE employees SET {', '.join(fields)} WHERE id = ?",
-                tuple(values),
-            )
-        else:
-            values.append(identifier)
-            cur = conn.execute(
-                f"UPDATE employees SET {', '.join(fields)} WHERE first_name = ? AND last_name = ?",
-                tuple(values),
-            )
+        values.append(int(identifier))
+        cur = conn.execute(
+            f"UPDATE employees SET {', '.join(fields)} WHERE id = ?",
+            tuple(values),
+        )
         conn.commit()
         return cur.rowcount
 
 def delete_card(identifier: str, db_path: Optional[str] = None) -> int:
     """Delete a card by numeric id (string) or exact name. Returns rowcount."""
+
     with get_connection(db_path) as conn:
         if identifier.isdigit():
             cur = conn.execute("DELETE FROM cards WHERE id = ?", (int(identifier),))
@@ -256,52 +256,18 @@ def delete_card(identifier: str, db_path: Optional[str] = None) -> int:
             cur = conn.execute("DELETE FROM cards WHERE name = ?", (identifier,))
         conn.commit()
         return cur.rowcount
-    
-def delete_emp(identifier: str, db_path: Optional[str] = None) -> int:
-    """Delete an employee by numeric id (string). Returns rowcount."""
+
+def delete_emp(identifier: int, db_path: Optional[str] = None) -> int:
+    """Delete an employee by numeric id. Returns rowcount."""
+
     with get_connection(db_path) as conn:
-        if identifier.isdigit():
-            cur = conn.execute("DELETE FROM employees WHERE id = ?", (int(identifier),))
+        cur = conn.execute("DELETE FROM employees WHERE id = ?", (int(identifier),))
         conn.commit()
         return cur.rowcount
 
 def test1(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
-    with get_connection(db_path) as conn:
-        cur = conn.execute(
-            "SELECT id, name, set_name, rarity, price_cents, stock\
-            FROM cards WHERE price_cents >= ?",
-            (500,),
-        )
-        return cur.fetchall()
-
-def test2(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
-    with get_connection(db_path) as conn:
-        cur = conn.execute(
-            "SELECT id, first_name, last_name, city\
-            FROM employees WHERE city = ?",
-            ("Baton Rouge",),
-        )
-        return cur.fetchall()
+    """Return all cards with price_cents >= 500."""
     
-def test3(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
-    with get_connection(db_path) as conn:
-        cur = conn.execute(
-            "SELECT id, name, set_name, rarity, price_cents, stock\
-            FROM cards WHERE price_cents >= ?",
-            (500,),
-        )
-        return cur.fetchall()
-    
-def test4(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
-    with get_connection(db_path) as conn:
-        cur = conn.execute(
-            "SELECT id, name, set_name, rarity, price_cents, stock\
-            FROM cards WHERE price_cents >= ?",
-            (500,),
-        )
-        return cur.fetchall()
-    
-def test5(db_path: Optional[str] = None) -> Iterable[sqlite3.Row]:
     with get_connection(db_path) as conn:
         cur = conn.execute(
             "SELECT id, name, set_name, rarity, price_cents, stock\

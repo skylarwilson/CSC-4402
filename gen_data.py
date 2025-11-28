@@ -1,21 +1,18 @@
-"""Helper for generating pseudo-random trading card rows.
-
-Used by ``init_db`` to seed sample data and optionally runnable as a module
-to insert additional cards into an existing database.
-"""
+"""Generates pseudo-random data for populating the database tables."""
 
 import random
-from typing import List, Sequence, Tuple, Optional
+from typing import List, Sequence, Tuple
 
 
-# A card tuple matches the `cards` table insert order in db.py
 # (name, set_name, rarity, price_cents, stock)
 CardRow = Tuple[str, str, str, int, int]
-# An employee tuple matches the `employees` table insert order in db.py
+
 # (first_name, last_name, city)
 EmployeeRow = Tuple[str, str, str]
 
 
+# CARDS
+# Simple adjective, noun, suffix, and set name pools for generating sample card names
 ADJECTIVES: Sequence[str] = (
     "Flame", "Shadow", "Crystal", "Thunder", "Silver", "Vorpal", "Elder",
     "Ancient", "Mystic", "Phantom", "Gilded", "Searing", "Frost", "Arcane",
@@ -39,6 +36,8 @@ SET_NAMES: Sequence[str] = (
 
 RARITIES: Sequence[str] = ("Common", "Uncommon", "Rare", "Mythic")
 
+
+# EMPLOYEES
 # Simple employee name and city pools for generating sample employees
 FIRST_NAMES: Sequence[str] = (
     "Ava", "Liam", "Noah", "Emma", "Olivia", "Mason", "Sophia", "Isabella",
@@ -58,6 +57,7 @@ CITIES: Sequence[str] = (
 
 
 def _price_for_rarity(rarity: str, rng: random.Random) -> int:
+    # Adds random price based on rarity
     if rarity == "Common":
         return rng.randint(50, 199)
     if rarity == "Uncommon":
@@ -69,7 +69,7 @@ def _price_for_rarity(rarity: str, rng: random.Random) -> int:
 
 
 def _weighted_rarity(rng: random.Random) -> str:
-    # Approximate distribution: Common 50%, Uncommon 25%, Rare 15%, Mythic 10%
+    # Adds random rarity to cards
     roll = rng.random()
     if roll < 0.50:
         return "Common"
@@ -89,7 +89,6 @@ def generate_cards(count) -> List[CardRow]:
     rng = random.Random()
     names_seen = set()
     out: List[CardRow] = []
-    out.append(("Thunderfury, Blessed Blade of the Windseeker", "Dark Portal", "Legendary", 100000, 1))
     # Cap attempts to avoid infinite loops if count is huge vs. name space
     attempts = 0
     while len(out) < count and attempts < count * 20:
@@ -98,7 +97,6 @@ def generate_cards(count) -> List[CardRow]:
         if name in names_seen:
             continue
         names_seen.add(name)
-
         set_name = rng.choice(SET_NAMES)
         rarity = _weighted_rarity(rng)
         price_cents = _price_for_rarity(rarity, rng)

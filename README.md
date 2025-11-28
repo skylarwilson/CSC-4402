@@ -3,18 +3,10 @@ Trading Card Shop — SQLite + Python
 
 Overview
 --------
-- Minimal SQLite schema with a few cards.
-- Simple CLI for basic CRUD.
+- Minimal SQLite schema with cards and employees.
+- Simple CLI.
 - Uses Python stdlib `sqlite3`.
 - Requires Python >= 3.8.
-
-Files
------
-- `cards/db.py`: DB schema, seed, and helpers.
-- `cards/cli.py`: Argparse CLI to manage cards.
-- `cards/__init__.py`: Package marker.
-- `cards/__main__.py`: Enables `python -m cards`.
-- `pyproject.toml`: Package metadata and `cards` console script.
 
 Quick Start
 -----------
@@ -22,17 +14,17 @@ Clone the repo.
 
   `git clone https://github.com/skylarwilson/CSC-4402`
 
-Install from repo root. This installs a `cards` command on your PATH.
+Install from repo root. This enables the `cards` command.
 
   `pip install -e .`
 
-Initialize the database (with sample cards):
+Initialize the database and seed sample data:
 
    `cards init-db`
 
 List cards:
 
-   `cards list`
+   `cards list_c`
 
 Get a card by id or exact name:
 
@@ -48,13 +40,8 @@ Update a card (by id or name):
 
    `cards update 1 --price-cents 1099 --stock 4`
    
-   `cards update "Flame Drake" --price-cents 1099 --stock 4`
+   `cards update "Sea Serpent" --price-cents 1099 --stock 4`
 
 Delete a card:
 
    `cards delete 1`
-
-
-Notes
------
-- Default DB path is `cards/shop.db` (created automatically).

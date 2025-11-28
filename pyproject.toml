@@ -5,16 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "trading-cards-shop"
 version = "0.1.0"
-description = "SQLite trading card shop with a simple CLI"
+description = "SQLite Trading Card shop with a simple CLI"
 requires-python = ">=3.8"
 readme = "README.md"
 license = {text = "Proprietary"}
-authors = [{ name = "Your Name" }]
+authors = [{ name = "Skylar Wilson" }]
 dependencies = []
 
 [project.scripts]
 cards = "cards.cli:main"
 
 [tool.setuptools]
-packages = ["cards", "test_scripts"]
+packages = ["cards"]
 package-dir = { cards = "." }
